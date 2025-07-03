@@ -33,8 +33,8 @@ Before setting up Swagger UI, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
-cd <project-directory>
+git clone https://github.com/TalhaK-20/Grocify.git
+cd Version 02
 ```
 
 ### 2. Install Dependencies
