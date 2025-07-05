@@ -1,1 +1,14 @@
+/shop*    /index.html   200
+/login    /index.html   200
+/register    /index.html   200
+/brands*    /index.html   200
+/product/*    /index.html   200
+/order/*    /index.html   200
+/sell    /index.html   200
+/contact    /index.html   200
+/forgot-password    /index.html   200
+/reset-password/*    /index.html   200
+/auth/*    /index.html   200
+/support    /index.html   200
+/dashboard*    /index.html   200
 /*    /index.html   200
