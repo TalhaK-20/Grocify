@@ -6,13 +6,13 @@ const crypto = require('crypto');
 const passport = require('passport');
 const nodemailer = require('nodemailer');
 
-const auth = require('../../middleware/auth');
+const auth = require('../../../middleware/auth');
 
 // Bring in Models & Helpers
-const User = require('../../models/user');
-const mailchimp = require('../../services/mailchimp');
-const keys = require('../../config/keys');
-const { EMAIL_PROVIDER, JWT_COOKIE } = require('../../constants');
+const User = require('../../../models/user');
+const mailchimp = require('../../../services/mailchimp');
+const keys = require('../../../config/keys');
+const { EMAIL_PROVIDER, JWT_COOKIE } = require('../../../constants');
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -322,6 +322,7 @@ router.get('/reset/:token', async (req, res) => {
               <strong>Invalid or Expired Token</strong><br>
               Your reset link has expired or is invalid. Please request a new password reset :) ....
             </div>
+            <a href="https://ba-admin.onrender.com/forgot-password" class="btn">Request New Password Reset</a>
           </div>
         </body>
         </html>
@@ -523,9 +524,9 @@ router.get('/reset/:token', async (req, res) => {
                   
                   if (countdown <= 0) {
                     clearInterval(timer);
-                    window.location.href = '';
+                    window.location.href = 'https://ba-admin.onrender.com/login';
                   }
-                }, 20000);
+                }, 1000);
                 
               } else {
                 errorDiv.textContent = data.error || 'An error occurred. Please try again.';
