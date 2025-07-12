@@ -451,7 +451,6 @@ router.get('/reset/:token', async (req, res) => {
           </form>
           
           <div id="redirect-message" class="redirect-message" style="display: none;">
-            Redirecting to login page in <span id="countdown">3</span> seconds...
           </div>
         </div>
 
