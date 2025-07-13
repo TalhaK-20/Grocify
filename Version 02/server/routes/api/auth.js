@@ -322,7 +322,7 @@ router.get('/reset/:token', async (req, res) => {
               <strong>Invalid or Expired Token</strong><br>
               Your reset link has expired or is invalid. Please request a new password reset.
             </div>
-            <a href="https://ba-admin.onrender.com/forgot" class="btn">Request New Password Reset</a>
+            <a href="https://ba-admin.onrender.com/forgot-password" class="btn">Request New Password Reset</a>
           </div>
         </body>
         </html>
