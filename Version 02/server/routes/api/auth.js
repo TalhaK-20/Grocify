@@ -496,7 +496,7 @@ router.get('/reset/:token', async (req, res) => {
             }
             
             try {
-              const response = await fetch('/auth/reset/${req.params.token}', {
+              const response = await fetch('/api/auth/reset/${req.params.token}', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
