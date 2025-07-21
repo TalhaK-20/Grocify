@@ -5,9 +5,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Grocify APIs',
+      title: 'ba grocery APIs',
       version: '1.0.0',
-      description: 'API documentation for the e-commerce platform',
+      description: 'API documentation for the e-commerce platform - Talha K.',
     },
     servers: [
       {

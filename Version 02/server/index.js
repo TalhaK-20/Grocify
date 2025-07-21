@@ -9,9 +9,11 @@ const routes = require('./routes');
 const socket = require('./socket');
 const setupDB = require('./utils/db');
 
+const { specs, swaggerUi } = require('./swagger');
 const { port } = keys;
 const app = express();
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
