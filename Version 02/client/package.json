@@ -7,6 +7,7 @@
   },
   "dependencies": {
      "webpack-cli": "^3.3.12",
+      "webpack": "^4.47.0",
     "@fontsource/poppins": "^4.5.9",
     "autosuggest-highlight": "^3.1.1",
     "axios": "^0.21.1",
@@ -40,8 +41,7 @@
     "serve": "^14.2.4",
     "simple-line-icons": "^2.4.1",
     "socket.io-client": "^4.2.0",
-    "validatorjs": "^3.18.1",
-    "webpack": "^4.47.0"
+    "validatorjs": "^3.18.1"
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",
