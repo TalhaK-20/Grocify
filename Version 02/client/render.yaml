@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: grocify-client
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_URL
+        fromService:
+          type: web
+          name: your-api-service-name
+          property: host

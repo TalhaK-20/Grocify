@@ -6,9 +6,9 @@ const CURRENT_WORKING_DIR = process.cwd();
 module.exports = {
   entry: [path.join(CURRENT_WORKING_DIR, 'app/index.js')],
   resolve: {
-    extensions: ['.js', '.json', '.css', '.scss', '.html'],
+    extensions: ['.js', '.jsx', '.json', '.css', '.scss', '.html'],
     alias: {
-      app: 'app'
+      app: path.resolve(CURRENT_WORKING_DIR, 'app')
     }
   },
   module: {
@@ -16,15 +16,25 @@ module.exports = {
       {
         test: /\.(js|jsx)$/,
         loader: 'babel-loader',
-        exclude: /(node_modules)/
+        exclude: /node_modules/,
+        options: {
+          presets: ['@babel/preset-env', '@babel/preset-react'],
+          plugins: ['@babel/plugin-proposal-class-properties']
+        }
       }
     ]
   },
   plugins: [
-    new CopyWebpackPlugin([
-      {
-        from: 'public'
-      }
-    ])
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'public',
+          to: '.',
+          globOptions: {
+            ignore: ['**/index.html']
+          }
+        }
+      ]
+    })
   ]
 };

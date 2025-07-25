@@ -7,22 +7,21 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const webpackMerge = require('webpack-merge');
-const Dotenv = require('dotenv-webpack'); // Add this import
+const Dotenv = require('dotenv-webpack');
 
 const common = require('./webpack.common');
 
 const CURRENT_WORKING_DIR = process.cwd();
-const NODE_ENV = process.env.NODE_ENV;
-const API_URL = process.env.API_URL;
+const NODE_ENV = process.env.NODE_ENV || 'production';
+const API_URL = process.env.API_URL || '';
 
 const config = {
   mode: 'production',
   output: {
-    path: path.join(CURRENT_WORKING_DIR, '/dist'),
-    filename: 'js/[name].[contenthash].js', // Changed from [hash] to [contenthash]
-    chunkFilename: 'js/[name].[contenthash].chunk.js', // Add this for better caching
-    publicPath: '/',
-    //clean: true // Clean dist folder before each build
+    path: path.join(CURRENT_WORKING_DIR, 'dist'),
+    filename: 'js/[name].[contenthash].js',
+    chunkFilename: 'js/[name].[contenthash].chunk.js',
+    publicPath: '/'
   },
   module: {
     rules: [
@@ -51,8 +50,8 @@ const config = {
             loader: 'file-loader',
             options: {
               outputPath: 'images',
-              publicPath: '../images',
-              name: '[name].[contenthash].[ext]' // Changed from [hash] to [contenthash]
+              publicPath: '/images',
+              name: '[name].[contenthash].[ext]'
             }
           }
         ]
@@ -64,8 +63,8 @@ const config = {
             loader: 'file-loader',
             options: {
               outputPath: 'fonts',
-              publicPath: '../fonts',
-              name: '[name].[contenthash].[ext]' // Changed from [hash] to [contenthash]
+              publicPath: '/fonts',
+              name: '[name].[contenthash].[ext]'
             }
           }
         ]
@@ -73,19 +72,20 @@ const config = {
     ]
   },
   performance: {
-    hints: false,
+    hints: 'warning',
     maxEntrypointSize: 512000,
     maxAssetSize: 512000
   },
   optimization: {
     minimize: true,
     nodeEnv: 'production',
-    sideEffects: true,
+    sideEffects: false,
     concatenateModules: true,
     runtimeChunk: 'single',
     splitChunks: {
+      chunks: 'all',
       cacheGroups: {
-        vendors: {
+        vendor: {
           test: /[\\/]node_modules[\\/]/,
           name: 'vendors',
           chunks: 'all'
@@ -103,7 +103,8 @@ const config = {
         terserOptions: {
           warnings: false,
           compress: {
-            comparisons: false
+            comparisons: false,
+            drop_console: true
           },
           parse: {},
           mangle: true,
@@ -111,18 +112,28 @@ const config = {
             comments: false,
             ascii_only: true
           }
-        }
+        },
+        extractComments: false
+      }),
+      new OptimizeCssAssetsPlugin({
+        assetNameRegExp: /\.css$/g,
+        cssProcessor: require('cssnano'),
+        cssProcessorPluginOptions: {
+          preset: ['default', { discardComments: { removeAll: true } }]
+        },
+        canPrint: true
       })
     ]
   },
   plugins: [
-    new Dotenv(), // Add dotenv plugin for production
+    new Dotenv({
+      safe: false,
+      systemvars: true
+    }),
     new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(NODE_ENV),
-        API_URL: JSON.stringify(API_URL),
-        REACT_APP_ENV: JSON.stringify('production') // Add this explicitly
-      }
+      'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
+      'process.env.API_URL': JSON.stringify(API_URL),
+      'process.env.REACT_APP_ENV': JSON.stringify('production')
     }),
     new HtmlWebpackPlugin({
       template: path.join(CURRENT_WORKING_DIR, 'public/index.html'),
@@ -141,7 +152,8 @@ const config = {
       }
     }),
     new MiniCssExtractPlugin({
-      filename: 'css/[name].[contenthash].css' // Changed from [hash] to [contenthash]
+      filename: 'css/[name].[contenthash].css',
+      chunkFilename: 'css/[id].[contenthash].css'
     }),
     new WebpackPwaManifest({
       name: 'MERN Store',
@@ -164,14 +176,6 @@ const config = {
           ios: true
         }
       ]
-    }),
-    new OptimizeCssAssetsPlugin({
-      assetNameRegExp: /\.css$/g,
-      cssProcessor: require('cssnano'),
-      cssProcessorPluginOptions: {
-        preset: ['default', { discardComments: { removeAll: true } }]
-      },
-      canPrint: true
     })
   ]
 };
