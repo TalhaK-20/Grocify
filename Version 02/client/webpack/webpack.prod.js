@@ -21,7 +21,8 @@ const config = {
     path: path.join(CURRENT_WORKING_DIR, 'dist'),
     filename: 'js/[name].[contenthash].js',
     chunkFilename: 'js/[name].[contenthash].chunk.js',
-    publicPath: '/'
+    publicPath: '/',
+    clean: true // This replaces manual cleanup
   },
   module: {
     rules: [

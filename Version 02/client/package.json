@@ -4,7 +4,7 @@
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
     "dev": "webpack-dev-server --config webpack/webpack.dev.js",
-    "build": "rimraf dist && webpack --mode production --config webpack/webpack.prod.js",
+    "build": "rm -rf dist && webpack --mode production --config webpack/webpack.prod.js",
     "start": "serve -s dist"
   },
   "dependencies": {
@@ -70,7 +70,7 @@
     "webpack-pwa-manifest": "^4.0.0"
   },
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
