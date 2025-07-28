@@ -61,7 +61,7 @@ const getEmailTemplate = (type, data = {}) => {
         html: `
           <h2>Password Reset Request</h2>
           <p>You have requested to reset your password. Please click the link below to reset your password:</p>
-          <a href="${process.env.FRONTEND_URL || 'https://your-frontend-app.onrender.com'}/reset-password/${data.token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+          <a href="${process.env.CLIENT_URL || 'https://ba-admin.onrender.com'}/reset-password/${data.token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
           <p>If you did not request this, please ignore this email.</p>
           <p>This link will expire in 1 hour.</p>
         `,
