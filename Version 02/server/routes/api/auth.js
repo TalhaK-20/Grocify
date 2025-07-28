@@ -496,7 +496,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Modified forgot password route (sends email with backend link)
-router.post('/forgot', async (req, res) => {
+router.post('/auth/forgot', async (req, res) => {
   try {
     const { email } = req.body;
 
