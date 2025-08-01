@@ -15,7 +15,7 @@ const keys = require('../../config/keys');
 const { EMAIL_PROVIDER, JWT_COOKIE } = require('../../constants');
 
 // Email transporter setup
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
