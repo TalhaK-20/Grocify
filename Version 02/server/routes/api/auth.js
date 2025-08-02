@@ -25,7 +25,7 @@ const transporter = nodemailer.createTransport({
 
 // Email functions
 const sendResetEmail = async (email, resetToken, host) => {
-  const resetUrl = `https://${host}/auth/reset/${resetToken}`;
+  const resetUrl = `https://${host}/api/auth/reset/${resetToken}`;
   
   const mailOptions = {
     from: process.env.EMAIL_FROM,
