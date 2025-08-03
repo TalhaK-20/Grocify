@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\" && npx cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
+    "build": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\" && NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
     "start": "node node_modules/serve/bin/serve.js -s dist -l $PORT"
   },
   "dependencies": {
@@ -36,7 +36,7 @@
     "redux-thunk": "^2.3.0",
     "rimraf": "^3.0.2",
     "sass": "^1.32.12",
-    "serve": "^14.2.1",
+    "serve": "^14.2.4",
     "simple-line-icons": "^2.4.1",
     "socket.io-client": "^4.2.0",
     "validatorjs": "^3.18.1",
@@ -52,7 +52,6 @@
     "babel-loader": "^8.0.6",
     "chalk": "^2.4.2",
     "copy-webpack-plugin": "^5.0.3",
-    "cross-env": "^5.2.1",
     "css-loader": "^2.1.1",
     "cssnano": "^4.1.10",
     "dotenv-webpack": "^1.8.0",
