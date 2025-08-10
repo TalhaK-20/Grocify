@@ -22,7 +22,7 @@ const config = {
     filename: 'js/[name].[contenthash].js', // Changed from [hash] to [contenthash]
     chunkFilename: 'js/[name].[contenthash].chunk.js', // Add this for better caching
     publicPath: '/',
-    clean: true // Clean dist folder before each build
+    //clean: true // Clean dist folder before each build
   },
   module: {
     rules: [

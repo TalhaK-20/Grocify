@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\" && NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
-    "start": "node node_modules/serve/bin/serve.js -s dist -l $PORT"
+    "build": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\" && cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
+    "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "@fontsource/poppins": "^4.5.9",
@@ -12,6 +12,7 @@
     "axios": "^0.21.1",
     "bootstrap": "^4.3.1",
     "connected-react-router": "^6.4.0",
+    "cross-env": "^7.0.3",
     "dompurify": "^2.3.8",
     "dotenv": "^8.6.0",
     "font-awesome": "^4.7.0",
