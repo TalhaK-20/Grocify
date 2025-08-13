@@ -11,6 +11,8 @@ const { google } = require('googleapis');
 
 const Item = require('./models/items');
 const Customer = require('./models/customers')
+const Order = require('./models/orders');
+const Cart = require('./models/carts');
 
 const app = express();
 app.use(express.json());
@@ -129,7 +131,12 @@ function safeJsonParse(str) {
   try { return JSON.parse(str); } catch (e) { return undefined; }
 }
 
+
 // ------------------ ROUTES ------------------
+
+
+// Items routes starts from here
+
 
 app.post('/api/items', upload.array('files', MAX_FILE_COUNT), async (req, res) => {
   try {
@@ -324,7 +331,7 @@ app.delete('/api/items/:id', async (req, res) => {
 });
 
 
-// ************************************************************************************************************************
+// **********************************************
 
 
 // ------------- Customer routes starts from here
@@ -405,7 +412,497 @@ app.delete('/api/customers/:id', async (req, res) => {
 });
 
 
+// **********************************************
+
+
+// ================= CART ROUTES =================
+
+
+// Get cart by customer ID or session ID
+app.get('/api/cart/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { type } = req.query;
+
+    let cart;
+    if (type === 'customer') {
+      cart = await Cart.findOne({ customerId: identifier }).populate('items.itemId');
+    } else {
+      cart = await Cart.findOne({ sessionId: identifier }).populate('items.itemId');
+    }
+
+    if (!cart) {
+      return res.json({ items: [], totalItems: 0, totalAmount: 0 });
+    }
+
+    res.json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Add item to cart
+app.post('/api/cart/add', async (req, res) => {
+  try {
+    const { customerId, sessionId, itemId, quantity = 1 } = req.body;
+
+    const item = await Item.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    if (item.stockQuantity < quantity) {
+      return res.status(400).json({ error: 'Insufficient stock' });
+    }
+
+    let cart;
+    if (customerId) {
+      cart = await Cart.findOne({ customerId }) || new Cart({ customerId });
+    } else if (sessionId) {
+      cart = await Cart.findOne({ sessionId }) || new Cart({ sessionId });
+    } else {
+      return res.status(400).json({ error: 'Customer ID or Session ID required' });
+    }
+
+    const price = item.salePrice || item.regularPrice;
+    const coverImage = item.images.find(img => img.isCover) || item.images[0];
+
+    const cartItem = {
+      itemId: item._id,
+      name: item.name,
+      price: price,
+      quantity: quantity,
+      imageUrl: coverImage?.url || item.fileUrl
+    };
+
+    cart.addItem(cartItem);
+    await cart.save();
+
+    res.json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Update item quantity in cart
+app.put('/api/cart/update', async (req, res) => {
+  try {
+    const { customerId, sessionId, itemId, quantity } = req.body;
+
+    let cart;
+    if (customerId) {
+      cart = await Cart.findOne({ customerId });
+    } else if (sessionId) {
+      cart = await Cart.findOne({ sessionId });
+    }
+
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' });
+    }
+
+    cart.updateQuantity(itemId, quantity);
+    await cart.save();
+
+    res.json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Remove item from cart
+app.delete('/api/cart/remove', async (req, res) => {
+  try {
+    const { customerId, sessionId, itemId } = req.body;
+
+    let cart;
+    if (customerId) {
+      cart = await Cart.findOne({ customerId });
+    } else if (sessionId) {
+      cart = await Cart.findOne({ sessionId });
+    }
+
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' });
+    }
+
+    cart.removeItem(itemId);
+    await cart.save();
+
+    res.json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Clear entire cart
+app.delete('/api/cart/clear/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { type } = req.query;
+
+    let result;
+    if (type === 'customer') {
+      result = await Cart.findOneAndDelete({ customerId: identifier });
+    } else {
+      result = await Cart.findOneAndDelete({ sessionId: identifier });
+    }
+
+    res.json({ message: 'Cart cleared successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// **********************************************
+
+
+// ================= CHECKOUT ROUTES =================
+
+
+// Get checkout information (customer details + cart)
+app.post('/api/checkout/info', async (req, res) => {
+  try {
+    const { customerId, sessionId } = req.body;
+
+    let cart;
+    if (customerId) {
+      cart = await Cart.findOne({ customerId }).populate('items.itemId');
+    } else if (sessionId) {
+      cart = await Cart.findOne({ sessionId }).populate('items.itemId');
+    }
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    let customer = null;
+    if (customerId) {
+      customer = await Customer.findById(customerId);
+    }
+
+    const subtotal = cart.totalAmount;
+    const shippingCost = subtotal > 2000 ? 0 : 150;
+    const tax = subtotal * 0.05;
+    const totalAmount = subtotal + shippingCost + tax;
+
+    const checkoutInfo = {
+      cart,
+      customer,
+      orderSummary: {
+        subtotal,
+        shippingCost,
+        tax,
+        totalAmount
+      }
+    };
+
+    res.json(checkoutInfo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Process checkout and create order
+app.post('/api/checkout/process', async (req, res) => {
+  try {
+    const {
+      customerId,
+      sessionId,
+      customerInfo,
+      shippingAddress,
+      billingAddress,
+      paymentMethod,
+      notes
+    } = req.body;
+
+    let cart;
+    if (customerId) {
+      cart = await Cart.findOne({ customerId }).populate('items.itemId');
+    } else if (sessionId) {
+      cart = await Cart.findOne({ sessionId }).populate('items.itemId');
+    }
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    for (const cartItem of cart.items) {
+      const currentItem = await Item.findById(cartItem.itemId);
+      if (!currentItem || currentItem.stockQuantity < cartItem.quantity) {
+        return res.status(400).json({
+          error: `Insufficient stock for ${cartItem.name}`
+        });
+      }
+    }
+
+    const subtotal = cart.totalAmount;
+    const shippingCost = subtotal > 2000 ? 0 : 150;
+    const tax = subtotal * 0.05;
+    const totalAmount = subtotal + shippingCost + tax;
+
+    const orderItems = cart.items.map(item => ({
+      itemId: item.itemId._id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      imageUrl: item.imageUrl,
+      subtotal: item.price * item.quantity
+    }));
+
+    const newOrder = new Order({
+      customerId: customerId || null,
+      customerInfo,
+      shippingAddress,
+      billingAddress,
+      items: orderItems,
+      subtotal,
+      shippingCost,
+      tax,
+      totalAmount,
+      paymentMethod,
+      notes,
+      paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Pending'
+    });
+
+    await newOrder.save();
+
+    for (const cartItem of cart.items) {
+      await Item.findByIdAndUpdate(
+        cartItem.itemId,
+        { $inc: { stockQuantity: -cartItem.quantity } }
+      );
+    }
+
+    if (customerId) {
+      await Cart.findOneAndDelete({ customerId });
+    } else if (sessionId) {
+      await Cart.findOneAndDelete({ sessionId });
+    }
+
+    res.status(201).json({
+      message: 'Order placed successfully',
+      order: newOrder
+    });
+
+  } catch (err) {
+    console.error('Checkout error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// **********************************************
+
+
+// ================= ORDER MANAGEMENT ROUTES =================
+
+
+// Get all orders (Admin)
+app.get('/api/orders', async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    const filter = {};
+    if (status) filter.orderStatus = status;
+
+    const skip = (page - 1) * limit;
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    const orders = await Order.find(filter)
+      .populate('customerId', 'firstname lastname email phone')
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalOrders = await Order.countDocuments(filter);
+
+    res.json({
+      orders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalOrders / limit),
+        totalOrders,
+        hasNext: page * limit < totalOrders,
+        hasPrev: page > 1
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Get single order
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('customerId', 'firstname lastname email phone profileImageUrl')
+      .populate('items.itemId', 'name description images');
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Update order status (Admin)
+app.put('/api/orders/:id/status', async (req, res) => {
+  try {
+    const { status, adminNotes, updatedBy = 'Admin' } = req.body;
+
+    const validStatuses = ['Order Placed', 'Order Confirmed', 'Order Dispatched', 'Order Delivered', 'Cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid order status' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    order.orderStatus = status;
+    order.updatedBy = updatedBy;
+    if (adminNotes) order.adminNotes = adminNotes;
+
+    if (status === 'Cancelled' && order.orderStatus !== 'Cancelled') {
+      for (const item of order.items) {
+        await Item.findByIdAndUpdate(
+          item.itemId,
+          { $inc: { stockQuantity: item.quantity } }
+        );
+      }
+    }
+
+    await order.save();
+
+    res.json({
+      message: 'Order status updated successfully',
+      order
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Get customer's orders
+app.get('/api/customers/:customerId/orders', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const { status, page = 1, limit = 10 } = req.query;
+
+    const filter = { customerId };
+    if (status) filter.orderStatus = status;
+
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalOrders = await Order.countDocuments(filter);
+
+    res.json({
+      orders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalOrders / limit),
+        totalOrders
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Get order statistics (Admin Dashboard)
+app.get('/api/orders/stats/summary', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const stats = await Order.aggregate([
+      {
+        $facet: {
+          totalOrders: [{ $count: "count" }],
+          todayOrders: [
+            { $match: { createdAt: { $gte: today } } },
+            { $count: "count" }
+          ],
+          statusCounts: [
+            { $group: { _id: "$orderStatus", count: { $sum: 1 } } }
+          ],
+          totalRevenue: [
+            { $match: { orderStatus: { $ne: "Cancelled" } } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+          ],
+          monthlyRevenue: [
+            {
+              $match: {
+                createdAt: { $gte: new Date(today.getFullYear(), today.getMonth(), 1) },
+                orderStatus: { $ne: "Cancelled" }
+              }
+            },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+          ]
+        }
+      }
+    ]);
+
+    const result = {
+      totalOrders: stats[0].totalOrders[0]?.count || 0,
+      todayOrders: stats[0].todayOrders[0]?.count || 0,
+      statusCounts: stats[0].statusCounts.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {}),
+      totalRevenue: stats[0].totalRevenue[0]?.total || 0,
+      monthlyRevenue: stats[0].monthlyRevenue[0]?.total || 0
+    };
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Add tracking number to order
+app.put('/api/orders/:id/tracking', async (req, res) => {
+  try {
+    const { trackingNumber } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { trackingNumber },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json({ message: 'Tracking number added successfully', order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
