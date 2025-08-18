@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "googleapis": "^155.0.1",
+    "mongoose": "^8.17.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.5"
+  },
+  "name": "grocery_app_backend",
+  "version": "1.0.0",
+  "description": "MERN Stack Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "MERN",
+    "Full-Stack",
+    "node.js"
+  ],
+  "author": "Talha Khalid",
+  "license": "ISC"
+}

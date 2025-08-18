@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  client:
+    build: client
+    container_name: client
+    ports:
+      - '8080:8080'
+    networks:
+      - app-network
+
+  server:
+    build: server
+    container_name: server
+    environment:
+      - PORT=3000
+      - BASE_API_URL=api
+      - CLIENT_URL=http://localhost:8080
+      - JWT_SECRET=3ce2304350eb2903247fad7c8ec1bef46a5215a089f1a8010e7325bb8314899f98672e5a36d273d298e7c88bdaa2ea7a0109592bd3667e1c4c396471c001f00a
+      - MONGO_URI=mongodb:mongodb+srv://talhak:talhak.@ba_aiceXPERT@cluster0.i9mkfzt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+    ports:
+      - '3000:3000'
+    command: [
+        'sh',
+        '-c',
+        'npm run seed:db admin@example.com admin123 && npm start'
+      ]
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    command: mongod --quiet --logpath /dev/null
+    ports:
+      - '27017:27017'
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
