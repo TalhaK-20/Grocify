@@ -26,3 +26,45 @@ router.post('/subscribe', async (req, res) => {
 });
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Newsletter
+ *   description: Newsletter subscription
+ */
+
+/**
+ * @swagger
+ * /newsletter/subscribe:
+ *   post:
+ *     summary: Subscribe to newsletter
+ *     tags: [Newsletter]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *             required:
+ *               - email
+ *     responses:
+ *       200:
+ *         description: Subscription successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Bad request
+ */

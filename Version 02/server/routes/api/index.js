@@ -54,3 +54,4 @@ router.use('/review', reviewRoutes);
 router.use('/wishlist', wishlistRoutes);
 
 module.exports = router;
+

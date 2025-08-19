@@ -359,3 +359,111 @@ const createMerchantUser = async (email, name, merchant, host) => {
 };
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Merchant
+ *   description: Merchant management
+ */
+
+/**
+ * @swagger
+ * /merchant/add:
+ *   post:
+ *     summary: Apply to become a merchant
+ *     tags: [Merchant]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/MerchantApplication'
+ *     responses:
+ *       200:
+ *         description: Application submitted successfully
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /merchant/search:
+ *   get:
+ *     summary: Search merchants (Admin only)
+ *     tags: [Merchant]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Search term
+ *     responses:
+ *       200:
+ *         description: List of matching merchants
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 merchants:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Merchant'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     MerchantApplication:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *         business:
+ *           type: string
+ *         phoneNumber:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         brandName:
+ *           type: string
+ *     Merchant:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         business:
+ *           type: string
+ *         phoneNumber:
+ *           type: string
+ *         brandName:
+ *           type: string
+ *         status:
+ *           type: string
+ *         isActive:
+ *           type: boolean
+ *         brand:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */

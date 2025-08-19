@@ -103,3 +103,164 @@ router.delete('/delete/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Address
+ *   description: User address management
+ */
+
+/**
+ * @swagger
+ * /address/add:
+ *   post:
+ *     summary: Add a new address
+ *     tags: [Address]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Address'
+ *     responses:
+ *       200:
+ *         description: Address added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AddressResponse'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /address:
+ *   get:
+ *     summary: Get all addresses for authenticated user
+ *     tags: [Address]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of addresses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 addresses:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Address'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /address/{id}:
+ *   get:
+ *     summary: Get address by ID
+ *     tags: [Address]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Address ID
+ *     responses:
+ *       200:
+ *         description: Address data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Address'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Address not found
+ */
+
+/**
+ * @swagger
+ * /address/{id}:
+ *   put:
+ *     summary: Update address
+ *     tags: [Address]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Address ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Address'
+ *     responses:
+ *       200:
+ *         description: Address updated successfully
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /address/delete/{id}:
+ *   delete:
+ *     summary: Delete address
+ *     tags: [Address]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Address ID
+ *     responses:
+ *       200:
+ *         description: Address deleted successfully
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Address:
+ *       type: object
+ *       properties:
+ *         address1:
+ *           type: string
+ *         address2:
+ *           type: string
+ *         city:
+ *           type: string
+ *         country:
+ *           type: string
+ *         state:
+ *           type: string
+ *         zipCode:
+ *           type: string
+ *         isDefault:
+ *           type: boolean
+ *     AddressResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         message:
+ *           type: string
+ *         address:
+ *           $ref: '#/components/schemas/Address'
+ */

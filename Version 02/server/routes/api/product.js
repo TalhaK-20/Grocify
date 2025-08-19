@@ -426,3 +426,79 @@ router.delete(
 );
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Product
+ *   description: Product management
+ */
+
+/**
+ * @swagger
+ * /product/item/{slug}:
+ *   get:
+ *     summary: Get product by slug
+ *     tags: [Product]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Product slug
+ *     responses:
+ *       200:
+ *         description: Product data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 product:
+ *                   $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Product not found
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         sku:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         quantity:
+ *           type: number
+ *         price:
+ *           type: number
+ *         taxable:
+ *           type: boolean
+ *         isActive:
+ *           type: boolean
+ *         brand:
+ *           type: string
+ *         imageUrl:
+ *           type: string
+ *         imageKey:
+ *           type: string
+ *         slug:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */

@@ -251,3 +251,133 @@ const deactivateMerchant = async brandId => {
 };
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Brand
+ *   description: Brand management
+ */
+
+/**
+ * @swagger
+ * /brand/add:
+ *   post:
+ *     summary: Add a new brand (Admin only)
+ *     tags: [Brand]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Brand'
+ *     responses:
+ *       200:
+ *         description: Brand added successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /brand/list:
+ *   get:
+ *     summary: Get active brands
+ *     tags: [Brand]
+ *     responses:
+ *       200:
+ *         description: List of active brands
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 brands:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Brand'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /brand:
+ *   get:
+ *     summary: Get all brands (Admin/Merchant only)
+ *     tags: [Brand]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of brands
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 brands:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Brand'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /brand/{id}:
+ *   get:
+ *     summary: Get brand by ID
+ *     tags: [Brand]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Brand ID
+ *     responses:
+ *       200:
+ *         description: Brand data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Brand'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Brand not found
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Brand:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         isActive:
+ *           type: boolean
+ *         merchant:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */

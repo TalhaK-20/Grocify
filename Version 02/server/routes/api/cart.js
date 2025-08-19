@@ -96,3 +96,139 @@ const decreaseQuantity = products => {
 };
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Cart
+ *   description: Shopping cart management
+ */
+
+/**
+ * @swagger
+ * /cart/add:
+ *   post:
+ *     summary: Create a new cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               products:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/CartItem'
+ *     responses:
+ *       200:
+ *         description: Cart created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 cartId:
+ *                   type: string
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /cart/delete/{cartId}:
+ *   delete:
+ *     summary: Delete cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cartId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cart ID
+ *     responses:
+ *       200:
+ *         description: Cart deleted successfully
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /cart/add/{cartId}:
+ *   post:
+ *     summary: Add item to cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cartId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cart ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CartItem'
+ *     responses:
+ *       200:
+ *         description: Item added to cart
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /cart/delete/{cartId}/{productId}:
+ *   delete:
+ *     summary: Remove item from cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cartId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Cart ID
+ *       - in: path
+ *         name: productId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Item removed from cart
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CartItem:
+ *       type: object
+ *       properties:
+ *         product:
+ *           type: string
+ *         quantity:
+ *           type: number
+ *         price:
+ *           type: number
+ */

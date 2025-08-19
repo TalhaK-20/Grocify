@@ -71,3 +71,71 @@ router.get('/', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Wishlist
+ *   description: User wishlist management
+ */
+
+/**
+ * @swagger
+ * /wishlist:
+ *   post:
+ *     summary: Add/update item in wishlist
+ *     tags: [Wishlist]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               product:
+ *                 type: string
+ *               isLiked:
+ *                 type: boolean
+ *             required:
+ *               - product
+ *               - isLiked
+ *     responses:
+ *       200:
+ *         description: Wishlist updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 wishlist:
+ *                   $ref: '#/components/schemas/Wishlist'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Wishlist:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         product:
+ *           type: string
+ *         isLiked:
+ *           type: boolean
+ *         user:
+ *           type: string
+ *         updated:
+ *           type: string
+ *           format: date-time
+ */

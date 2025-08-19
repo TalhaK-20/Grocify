@@ -184,3 +184,74 @@ router.delete('/delete/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Review
+ *   description: Product reviews
+ */
+
+/**
+ * @swagger
+ * /review/add:
+ *   post:
+ *     summary: Add a product review
+ *     tags: [Review]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Review'
+ *     responses:
+ *       200:
+ *         description: Review submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 review:
+ *                   $ref: '#/components/schemas/Review'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Review:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         product:
+ *           type: string
+ *         user:
+ *           type: string
+ *         title:
+ *           type: string
+ *         review:
+ *           type: string
+ *         rating:
+ *           type: number
+ *         status:
+ *           type: string
+ *         isActive:
+ *           type: boolean
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */

@@ -180,3 +180,133 @@ router.delete(
 );
 
 module.exports = router;
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Category
+ *   description: Category management
+ */
+
+/**
+ * @swagger
+ * /category/add:
+ *   post:
+ *     summary: Add a new category (Admin only)
+ *     tags: [Category]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Category'
+ *     responses:
+ *       200:
+ *         description: Category added successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /category/list:
+ *   get:
+ *     summary: Get active categories
+ *     tags: [Category]
+ *     responses:
+ *       200:
+ *         description: List of active categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /category:
+ *   get:
+ *     summary: Get all categories
+ *     tags: [Category]
+ *     responses:
+ *       200:
+ *         description: List of all categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /category/{id}:
+ *   get:
+ *     summary: Get category by ID
+ *     tags: [Category]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Category ID
+ *     responses:
+ *       200:
+ *         description: Category data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Category not found
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Category:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         products:
+ *           type: array
+ *           items:
+ *             type: string
+ *         isActive:
+ *           type: boolean
+ *         slug:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
