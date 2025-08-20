@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const Mongoose = require('mongoose');
 
 // Bring in Models & Utils
 const Cart = require('../../models/cart');
@@ -7,25 +8,34 @@ const Product = require('../../models/product');
 const auth = require('../../middleware/auth');
 const store = require('../../utils/store');
 
-router.post('/add', auth, async (req, res) => {
+// GET USER'S CURRENT CART (Main API you were missing)
+router.get('/me', auth, async (req, res) => {
   try {
-    const user = req.user._id;
-    const items = req.body.products;
+    const userId = req.user._id;
 
-    const products = store.caculateItemsSalesTax(items);
+    let cart = await Cart.findOne({ user: userId })
+      .populate({
+        path: 'products.product',
+        populate: {
+          path: 'brand'
+        }
+      })
+      .sort({ created: -1 }); // Get most recent cart
 
-    const cart = new Cart({
-      user,
-      products
-    });
-
-    const cartDoc = await cart.save();
-
-    decreaseQuantity(products);
+    if (!cart) {
+      // Create empty cart if none exists
+      cart = new Cart({
+        user: userId,
+        products: []
+      });
+      await cart.save();
+    }
 
     res.status(200).json({
       success: true,
-      cartId: cartDoc.id
+      cart,
+      cartItems: cart.products,
+      cartTotal: cart.products.reduce((total, item) => total + item.totalPrice, 0)
     });
   } catch (error) {
     res.status(400).json({
@@ -34,69 +44,223 @@ router.post('/add', auth, async (req, res) => {
   }
 });
 
-router.delete('/delete/:cartId', auth, async (req, res) => {
+// ADD ITEM TO CART
+router.post('/add-item', auth, async (req, res) => {
   try {
-    await Cart.deleteOne({ _id: req.params.cartId });
+    const userId = req.user._id;
+    const { productId, quantity = 1 } = req.body;
 
-    res.status(200).json({
-      success: true
-    });
-  } catch (error) {
-    res.status(400).json({
-      error: 'Your request could not be processed. Please try again.'
-    });
-  }
-});
+    if (!productId) {
+      return res.status(400).json({ error: 'Product ID is required.' });
+    }
 
-router.post('/add/:cartId', auth, async (req, res) => {
-  try {
-    const product = req.body.product;
-    const query = { _id: req.params.cartId };
+    // Get product details
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
 
-    await Cart.updateOne(query, { $push: { products: product } }).exec();
+    if (product.quantity < quantity) {
+      return res.status(400).json({ error: 'Insufficient stock.' });
+    }
 
-    res.status(200).json({
-      success: true
-    });
-  } catch (error) {
-    res.status(400).json({
-      error: 'Your request could not be processed. Please try again.'
-    });
-  }
-});
+    // Find or create user's cart
+    let cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      cart = new Cart({
+        user: userId,
+        products: []
+      });
+    }
 
-router.delete('/delete/:cartId/:productId', auth, async (req, res) => {
-  try {
-    const product = { product: req.params.productId };
-    const query = { _id: req.params.cartId };
+    // Check if product already exists in cart
+    const existingItemIndex = cart.products.findIndex(
+      item => item.product.toString() === productId
+    );
 
-    await Cart.updateOne(query, { $pull: { products: product } }).exec();
+    const purchasePrice = product.price;
+    const totalPrice = purchasePrice * quantity;
+    const totalTax = product.taxable ? totalPrice * 0.1 : 0; // 10% tax if taxable
+    const priceWithTax = totalPrice + totalTax;
 
-    res.status(200).json({
-      success: true
-    });
-  } catch (error) {
-    res.status(400).json({
-      error: 'Your request could not be processed. Please try again.'
-    });
-  }
-});
+    if (existingItemIndex > -1) {
+      // Update existing item
+      cart.products[existingItemIndex].quantity += quantity;
+      cart.products[existingItemIndex].totalPrice = 
+        cart.products[existingItemIndex].purchasePrice * cart.products[existingItemIndex].quantity;
+      cart.products[existingItemIndex].totalTax = 
+        product.taxable ? cart.products[existingItemIndex].totalPrice * 0.1 : 0;
+      cart.products[existingItemIndex].priceWithTax = 
+        cart.products[existingItemIndex].totalPrice + cart.products[existingItemIndex].totalTax;
+    } else {
+      // Add new item
+      cart.products.push({
+        product: productId,
+        quantity,
+        purchasePrice,
+        totalPrice,
+        totalTax,
+        priceWithTax
+      });
+    }
 
-const decreaseQuantity = products => {
-  let bulkOptions = products.map(item => {
-    return {
-      updateOne: {
-        filter: { _id: item.product },
-        update: { $inc: { quantity: -item.quantity } }
+    cart.updated = new Date();
+    await cart.save();
+
+    // Populate cart for response
+    await cart.populate({
+      path: 'products.product',
+      populate: {
+        path: 'brand'
       }
-    };
-  });
+    });
 
-  Product.bulkWrite(bulkOptions);
-};
+    res.status(200).json({
+      success: true,
+      message: 'Item added to cart successfully!',
+      cart,
+      cartItems: cart.products,
+      cartTotal: cart.products.reduce((total, item) => total + item.totalPrice, 0)
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
+
+// REMOVE ITEM FROM CART
+router.delete('/remove-item/:productId', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const productId = req.params.productId;
+
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found.' });
+    }
+
+    // Remove item from cart
+    cart.products = cart.products.filter(
+      item => item.product.toString() !== productId
+    );
+
+    cart.updated = new Date();
+    await cart.save();
+
+    // Populate cart for response
+    await cart.populate({
+      path: 'products.product',
+      populate: {
+        path: 'brand'
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Item removed from cart successfully!',
+      cart,
+      cartItems: cart.products,
+      cartTotal: cart.products.reduce((total, item) => total + item.totalPrice, 0)
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
+
+// UPDATE ITEM QUANTITY IN CART
+router.put('/update-item/:productId', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const productId = req.params.productId;
+    const { quantity } = req.body;
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ error: 'Invalid quantity.' });
+    }
+
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found.' });
+    }
+
+    // Find item in cart
+    const itemIndex = cart.products.findIndex(
+      item => item.product.toString() === productId
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({ error: 'Item not found in cart.' });
+    }
+
+    // Get product to check stock and calculate prices
+    const product = await Product.findById(productId);
+    if (product.quantity < quantity) {
+      return res.status(400).json({ error: 'Insufficient stock.' });
+    }
+
+    // Update item
+    cart.products[itemIndex].quantity = quantity;
+    cart.products[itemIndex].totalPrice = cart.products[itemIndex].purchasePrice * quantity;
+    cart.products[itemIndex].totalTax = product.taxable ? cart.products[itemIndex].totalPrice * 0.1 : 0;
+    cart.products[itemIndex].priceWithTax = cart.products[itemIndex].totalPrice + cart.products[itemIndex].totalTax;
+
+    cart.updated = new Date();
+    await cart.save();
+
+    // Populate cart for response
+    await cart.populate({
+      path: 'products.product',
+      populate: {
+        path: 'brand'
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Cart updated successfully!',
+      cart,
+      cartItems: cart.products,
+      cartTotal: cart.products.reduce((total, item) => total + item.totalPrice, 0)
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
+
+// CLEAR ENTIRE CART
+router.delete('/clear', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found.' });
+    }
+
+    cart.products = [];
+    cart.updated = new Date();
+    await cart.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Cart cleared successfully!',
+      cart,
+      cartItems: [],
+      cartTotal: 0
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
 
 module.exports = router;
-
 
 /**
  * @swagger
@@ -107,9 +271,37 @@ module.exports = router;
 
 /**
  * @swagger
- * /cart/add:
+ * /cart/me:
+ *   get:
+ *     summary: Get user's current cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cart retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 cart:
+ *                   $ref: '#/components/schemas/Cart'
+ *                 cartItems:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CartItem'
+ *                 cartTotal:
+ *                   type: number
+ */
+
+/**
+ * @swagger
+ * /cart/add-item:
  *   post:
- *     summary: Create a new cart
+ *     summary: Add item to cart
  *     tags: [Cart]
  *     security:
  *       - bearerAuth: []
@@ -120,79 +312,21 @@ module.exports = router;
  *           schema:
  *             type: object
  *             properties:
- *               products:
- *                 type: array
- *                 items:
- *                   $ref: '#/components/schemas/CartItem'
+ *               productId:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *                 default: 1
+ *             required:
+ *               - productId
  *     responses:
  *       200:
- *         description: Cart created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 cartId:
- *                   type: string
- *       400:
- *         description: Bad request
+ *         description: Item added to cart successfully
  */
 
 /**
  * @swagger
- * /cart/delete/{cartId}:
- *   delete:
- *     summary: Delete cart
- *     tags: [Cart]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: cartId
- *         schema:
- *           type: string
- *         required: true
- *         description: Cart ID
- *     responses:
- *       200:
- *         description: Cart deleted successfully
- *       400:
- *         description: Bad request
- */
-
-/**
- * @swagger
- * /cart/add/{cartId}:
- *   post:
- *     summary: Add item to cart
- *     tags: [Cart]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: cartId
- *         schema:
- *           type: string
- *         required: true
- *         description: Cart ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CartItem'
- *     responses:
- *       200:
- *         description: Item added to cart
- *       400:
- *         description: Bad request
- */
-
-/**
- * @swagger
- * /cart/delete/{cartId}/{productId}:
+ * /cart/remove-item/{productId}:
  *   delete:
  *     summary: Remove item from cart
  *     tags: [Cart]
@@ -200,35 +334,54 @@ module.exports = router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: cartId
- *         schema:
- *           type: string
- *         required: true
- *         description: Cart ID
- *       - in: path
  *         name: productId
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: Product ID
  *     responses:
  *       200:
- *         description: Item removed from cart
- *       400:
- *         description: Bad request
+ *         description: Item removed from cart successfully
  */
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     CartItem:
- *       type: object
- *       properties:
- *         product:
+ * /cart/update-item/{productId}:
+ *   put:
+ *     summary: Update item quantity in cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
  *           type: string
- *         quantity:
- *           type: number
- *         price:
- *           type: number
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: number
+ *             required:
+ *               - quantity
+ *     responses:
+ *       200:
+ *         description: Cart updated successfully
+ */
+
+/**
+ * @swagger
+ * /cart/clear:
+ *   delete:
+ *     summary: Clear entire cart
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cart cleared successfully
  */
