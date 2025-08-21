@@ -13,6 +13,7 @@ const cartRoutes = require('./cart');
 const orderRoutes = require('./order');
 const reviewRoutes = require('./review');
 const wishlistRoutes = require('./wishlist');
+const bannerRoutes = require('./banner'); // Add this line
 
 // auth routes
 router.use('/auth', authRoutes);
@@ -52,6 +53,9 @@ router.use('/review', reviewRoutes);
 
 // Wishlist routes
 router.use('/wishlist', wishlistRoutes);
+
+// Banner routes
+router.use('/banner', bannerRoutes); // Add this line
 
 module.exports = router;
 

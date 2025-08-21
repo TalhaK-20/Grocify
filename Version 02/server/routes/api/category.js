@@ -310,3 +310,181 @@ module.exports = router;
  *           type: string
  *           format: date-time
  */
+
+// new routes
+
+// Add this route to your existing category router
+
+// fetch products by category ID api
+
+router.get('/:id/products', async (req, res) => {
+  try {
+    const categoryId = req.params.id;
+
+    const categoryDoc = await Category.findOne({ 
+      _id: categoryId,
+      isActive: true 
+    }).populate({
+      path: 'products',
+      match: { isActive: true }, // Only get active products
+      select: '-slug' // Exclude slug field from products
+    });
+
+    if (!categoryDoc) {
+      return res.status(404).json({
+        message: 'No active category found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      categoryName: categoryDoc.name,
+      categoryDescription: categoryDoc.description,
+      products: categoryDoc.products
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
+
+
+router.post('/products', async (req, res) => {
+  try {
+    const { categoryIds } = req.body;
+
+    if (!categoryIds || !Array.isArray(categoryIds)) {
+      return res.status(400).json({
+        error: 'Please provide valid category IDs array.'
+      });
+    }
+
+    const categories = await Category.find({ 
+      _id: { $in: categoryIds },
+      isActive: true 
+    }).populate({
+      path: 'products',
+      match: { isActive: true }, // Only get active products
+      select: '-slug' // Exclude slug field from products
+    });
+
+    // Flatten products from all categories and remove duplicates
+    const allProducts = [];
+    const productIds = new Set();
+
+    categories.forEach(category => {
+      category.products.forEach(product => {
+        if (!productIds.has(product._id.toString())) {
+          productIds.add(product._id.toString());
+          allProducts.push({
+            ...product.toObject(),
+            categoryInfo: {
+              id: category._id,
+              name: category.name
+            }
+          });
+        }
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      totalProducts: allProducts.length,
+      products: allProducts
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Your request could not be processed. Please try again.'
+    });
+  }
+});
+
+
+/**
+ * @swagger
+ * /category/{id}/products:
+ *   get:
+ *     summary: Get products by category ID
+ *     tags: [Category]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Category ID
+ *     responses:
+ *       200:
+ *         description: Products in the category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 categoryName:
+ *                   type: string
+ *                 categoryDescription:
+ *                   type: string
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Category not found
+ */
+
+
+/**
+ * @swagger
+ * /category/products:
+ *   post:
+ *     summary: Get products by multiple category IDs
+ *     tags: [Category]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of category IDs
+ *             required:
+ *               - categoryIds
+ *     responses:
+ *       200:
+ *         description: Products from multiple categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 totalProducts:
+ *                   type: number
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Product'
+ *                       - type: object
+ *                         properties:
+ *                           categoryInfo:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *       400:
+ *         description: Bad request
+ */
