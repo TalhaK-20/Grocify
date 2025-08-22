@@ -4,6 +4,15 @@ const { ROLES, EMAIL_PROVIDER } = require('../constants');
 
 const { Schema } = Mongoose;
 
+// Address schema for structured addresses
+const addressSchema = new Schema({
+  street: { type: String },
+  city: { type: String },
+  state: { type: String },
+  zipCode: { type: String },
+  country: { type: String, default: 'Pakistan' }
+}, { _id: false });
+
 // User Schema
 const UserSchema = new Schema({
   email: {
@@ -43,6 +52,19 @@ const UserSchema = new Schema({
   avatar: {
     type: String
   },
+  // Add profile image support from Version 1
+  profileImageUrl: { 
+    type: String 
+  },
+  // Add address support from Version 1
+  address: { 
+    type: String 
+  }, // Keep for backward compatibility
+  shippingAddress: addressSchema,
+  billingAddress: addressSchema,
+  gender: { 
+    type: String 
+  },
   role: {
     type: String,
     default: ROLES.Member,
@@ -57,4 +79,20 @@ const UserSchema = new Schema({
   }
 });
 
+// Add utility method for address parsing from Version 1
+UserSchema.methods.parseAddress = function (addressString) {
+  const parts = addressString.split(',').map(part => part.trim());
+  return {
+    street: parts[0] || addressString,
+    city: parts[1] || '',
+    state: parts[2] || '',
+    zipCode: parts[3] || '',
+    country: 'Pakistan'
+  };
+};
+
+// Add virtual for full name from Version 1
+UserSchema.virtual('fullName').get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
 module.exports = Mongoose.model('User', UserSchema);

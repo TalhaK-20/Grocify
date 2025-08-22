@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const Mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
 
 // Bring in Models & Utils
 const Product = require('../../models/product');
@@ -17,8 +19,42 @@ const {
 } = require('../../utils/queries');
 const { ROLES } = require('../../constants');
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Import Google Drive utilities
+const {
+  uploadFileToDrive,
+  uploadMultipleFilesToDrive,
+  cleanupLocalFiles,
+  safeJsonParse
+} = require('../../utils/googleDrive');
+
+// Configure multer for both memory and disk storage
+const memoryStorage = multer.memoryStorage();
+const uploadMemory = multer({ storage: memoryStorage });
+
+// Disk storage for Google Drive uploads
+const uploadFolder = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder, { recursive: true });
+
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadFolder),
+  filename: (req, file, cb) => {
+    const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+    cb(null, safeName);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (/^image\/(jpe?g|png|gif|webp)$/i.test(file.mimetype)) cb(null, true);
+  else cb(new Error('Only image files are allowed (jpeg, png, gif, webp).'), false);
+};
+
+const uploadDisk = multer({
+  storage: diskStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter
+});
+
+const MAX_FILE_COUNT = 10;
 
 // fetch product slug api
 router.get('/item/:slug', async (req, res) => {
@@ -58,7 +94,7 @@ router.get('/list/search/:name', async (req, res) => {
 
     const productDoc = await Product.find(
       { name: { $regex: new RegExp(name), $options: 'is' }, isActive: true },
-      { name: 1, slug: 1, imageUrl: 1, price: 1, _id: 0 }
+      { name: 1, slug: 1, imageUrl: 1, images: 1, price: 1, _id: 0 }
     );
 
     if (productDoc.length < 0) {
@@ -175,12 +211,142 @@ router.get('/list/select', auth, async (req, res) => {
   }
 });
 
-// add product api
+// Enhanced add product api with Google Drive support
 router.post(
   '/add',
   auth,
   role.check(ROLES.Admin, ROLES.Merchant),
-  upload.single('image'),
+  uploadDisk.array('images', MAX_FILE_COUNT), // Support multiple files
+  async (req, res) => {
+    try {
+      const {
+        sku,
+        name,
+        description,
+        quantity,
+        price,
+        salePrice,
+        taxable,
+        isActive,
+        brand,
+        stockStatus,
+        stockQuantity,
+        weight,
+        dimensions
+      } = req.body;
+
+      const files = req.files;
+
+      // Validation
+      if (!sku) {
+        return res.status(400).json({ error: 'You must enter sku.' });
+      }
+
+      if (!description || !name) {
+        return res
+          .status(400)
+          .json({ error: 'You must enter description & name.' });
+      }
+
+      if (!quantity) {
+        return res.status(400).json({ error: 'You must enter a quantity.' });
+      }
+
+      if (!price) {
+        return res.status(400).json({ error: 'You must enter a price.' });
+      }
+
+      const foundProduct = await Product.findOne({ sku });
+
+      if (foundProduct) {
+        return res.status(400).json({ error: 'This sku is already in use.' });
+      }
+
+      let imageUrl, imageKey, images = [], googleDriveId, fileUrl;
+
+      // Handle file uploads
+      if (files && files.length > 0) {
+        try {
+          // Upload to Google Drive
+          const driveResults = await uploadMultipleFilesToDrive(files);
+          
+          // Set primary image from first uploaded file
+          if (driveResults.length > 0) {
+            googleDriveId = driveResults[0].id;
+            fileUrl = driveResults[0].url;
+            imageUrl = driveResults[0].url; // For backward compatibility
+          }
+          
+          // Store all images in the images array
+          images = driveResults.map(result => ({
+            id: result.id,
+            url: result.url
+          }));
+
+          // Clean up local files
+          cleanupLocalFiles(files);
+
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          // Clean up local files even if upload fails
+          cleanupLocalFiles(files);
+          return res.status(400).json({ 
+            error: 'File upload failed. Please try again.' 
+          });
+        }
+      }
+
+      // Parse dimensions if provided
+      let parsedDimensions;
+      if (dimensions) {
+        parsedDimensions = typeof dimensions === 'string' ? 
+          safeJsonParse(dimensions) : dimensions;
+      }
+
+      const product = new Product({
+        sku,
+        name,
+        description,
+        quantity,
+        price,
+        salePrice: salePrice || undefined,
+        taxable: taxable || false,
+        isActive: isActive !== undefined ? isActive : true,
+        brand: brand || null,
+        stockStatus: stockStatus || 'In Stock',
+        stockQuantity: stockQuantity || 0,
+        weight: weight || undefined,
+        dimensions: parsedDimensions || undefined,
+        // Image fields
+        imageUrl,
+        imageKey,
+        images,
+        googleDriveId,
+        fileUrl
+      });
+
+      const savedProduct = await product.save();
+
+      res.status(200).json({
+        success: true,
+        message: `Product has been added successfully!`,
+        product: savedProduct
+      });
+    } catch (error) {
+      console.error('Add product error:', error);
+      return res.status(400).json({
+        error: 'Your request could not be processed. Please try again.'
+      });
+    }
+  }
+);
+
+// Enhanced add product api with S3 support (for backward compatibility)
+router.post(
+  '/add-s3',
+  auth,
+  role.check(ROLES.Admin, ROLES.Merchant),
+  uploadMemory.single('image'),
   async (req, res) => {
     try {
       const sku = req.body.sku;
@@ -341,16 +507,20 @@ router.get(
   }
 );
 
+// Enhanced update product api with Google Drive support
 router.put(
   '/:id',
   auth,
   role.check(ROLES.Admin, ROLES.Merchant),
+  uploadDisk.array('images', MAX_FILE_COUNT),
   async (req, res) => {
     try {
       const productId = req.params.id;
-      const update = req.body.product;
+      const update = req.body.product ? req.body.product : req.body;
+      const files = req.files;
       const query = { _id: productId };
-      const { sku, slug } = req.body.product;
+      
+      const { sku, slug } = update;
 
       const foundProduct = await Product.findOne({
         $or: [{ slug }, { sku }]
@@ -362,6 +532,42 @@ router.put(
           .json({ error: 'Sku or slug is already in use.' });
       }
 
+      // Handle new file uploads if provided
+      if (files && files.length > 0) {
+        try {
+          // Upload new files to Google Drive
+          const driveResults = await uploadMultipleFilesToDrive(files);
+          
+          // Update image fields
+          if (driveResults.length > 0) {
+            update.googleDriveId = driveResults[0].id;
+            update.fileUrl = driveResults[0].url;
+            update.imageUrl = driveResults[0].url; // For backward compatibility
+          }
+          
+          // Add new images to existing ones or replace them
+          update.images = driveResults.map(result => ({
+            id: result.id,
+            url: result.url
+          }));
+
+          // Clean up local files
+          cleanupLocalFiles(files);
+
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          cleanupLocalFiles(files);
+          return res.status(400).json({ 
+            error: 'File upload failed. Please try again.' 
+          });
+        }
+      }
+
+      // Parse dimensions if provided
+      if (update.dimensions && typeof update.dimensions === 'string') {
+        update.dimensions = safeJsonParse(update.dimensions);
+      }
+
       await Product.findOneAndUpdate(query, update, {
         new: true
       });
@@ -371,6 +577,7 @@ router.put(
         message: 'Product has been updated successfully!'
       });
     } catch (error) {
+      console.error('Update product error:', error);
       res.status(400).json({
         error: 'Your request could not be processed. Please try again.'
       });
@@ -424,81 +631,264 @@ router.delete(
     }
   }
 );
-
 module.exports = router;
 
 
 /**
  * @swagger
  * tags:
- *   name: Product
- *   description: Product management
+ *   name: Products
+ *   description: Product management APIs
  */
 
 /**
  * @swagger
- * /product/item/{slug}:
+ * /api/product/item/{slug}:
  *   get:
  *     summary: Get product by slug
- *     tags: [Product]
+ *     tags: [Products]
  *     parameters:
  *       - in: path
  *         name: slug
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
  *         description: Product slug
  *     responses:
  *       200:
- *         description: Product data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 product:
- *                   $ref: '#/components/schemas/Product'
+ *         description: Product fetched successfully
+ *       404:
+ *         description: No product found
  *       400:
  *         description: Bad request
- *       404:
- *         description: Product not found
  */
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Product:
- *       type: object
- *       properties:
- *         _id:
+ * /api/product/list/search/{name}:
+ *   get:
+ *     summary: Search products by name
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
  *           type: string
- *         sku:
+ *         description: Product name or keyword
+ *     responses:
+ *       200:
+ *         description: Products fetched successfully
+ *       404:
+ *         description: No product found
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /api/product/list:
+ *   get:
+ *     summary: Get store products with filters
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
  *           type: string
- *         name:
- *           type: string
- *         description:
- *           type: string
- *         quantity:
+ *         description: Sorting order (JSON string)
+ *       - in: query
+ *         name: rating
+ *         schema:
  *           type: number
- *         price:
+ *       - in: query
+ *         name: min
+ *         schema:
  *           type: number
- *         taxable:
- *           type: boolean
- *         isActive:
- *           type: boolean
- *         brand:
+ *       - in: query
+ *         name: max
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: category
+ *         schema:
  *           type: string
- *         imageUrl:
+ *       - in: query
+ *         name: brand
+ *         schema:
  *           type: string
- *         imageKey:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         default: 10
+ *     responses:
+ *       200:
+ *         description: Products list with pagination
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /api/product/add:
+ *   post:
+ *     summary: Add a new product (Google Drive upload)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sku:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *               price:
+ *                 type: number
+ *               salePrice:
+ *                 type: number
+ *               taxable:
+ *                 type: boolean
+ *               isActive:
+ *                 type: boolean
+ *               brand:
+ *                 type: string
+ *               stockStatus:
+ *                 type: string
+ *               stockQuantity:
+ *                 type: integer
+ *               weight:
+ *                 type: number
+ *               dimensions:
+ *                 type: string
+ *                 example: '{"length":10,"width":5,"height":3}'
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Product added successfully
+ *       400:
+ *         description: Validation or upload error
+ */
+
+/**
+ * @swagger
+ * /api/product/{id}:
+ *   get:
+ *     summary: Get product by ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *         slug:
+ *     responses:
+ *       200:
+ *         description: Product fetched successfully
+ *       404:
+ *         description: Product not found
+ *       400:
+ *         description: Bad request
+ *   put:
+ *     summary: Update a product by ID
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *         createdAt:
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               product:
+ *                 type: string
+ *                 description: JSON string of product fields
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /api/product/{id}/active:
+ *   put:
+ *     summary: Update product active status
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *           format: date-time
- *         updatedAt:
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               product:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Product status updated
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /api/product/delete/{id}:
+ *   delete:
+ *     summary: Delete a product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Product deleted successfully
+ *       400:
+ *         description: Bad request
  */

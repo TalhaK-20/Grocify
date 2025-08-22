@@ -10,6 +10,12 @@ const options = {
 
 Mongoose.plugin(slug, options);
 
+// Image schema for Google Drive images
+const imageSchema = new Schema({
+  id: { type: String },
+  url: { type: String }
+}, { _id: false });
+
 // Product Schema
 const ProductSchema = new Schema({
   sku: {
@@ -24,11 +30,23 @@ const ProductSchema = new Schema({
     slug: 'name',
     unique: true
   },
+  // Keep existing imageUrl and imageKey for backward compatibility
   imageUrl: {
     type: String
   },
   imageKey: {
     type: String
+  },
+  // Add Google Drive support from Version 1
+  images: { 
+    type: [imageSchema], 
+    default: [] 
+  },
+  googleDriveId: { 
+    type: String 
+  },
+  fileUrl: { 
+    type: String 
   },
   description: {
     type: String,
@@ -38,6 +56,10 @@ const ProductSchema = new Schema({
     type: Number
   },
   price: {
+    type: Number
+  },
+  // Add support for sale price from Version 1
+  salePrice: {
     type: Number
   },
   taxable: {
@@ -53,10 +75,33 @@ const ProductSchema = new Schema({
     ref: 'Brand',
     default: null
   },
+  // Add additional fields from Version 1
+  stockStatus: { 
+    type: String, 
+    enum: ['In Stock', 'Out of Stock'], 
+    default: 'In Stock' 
+  },
+  stockQuantity: { 
+    type: Number, 
+    default: 0 
+  },
+  weight: { 
+    type: String 
+  },
+  dimensions: {
+    length: { type: Number },
+    width: { type: Number },
+    height: { type: Number }
+  },
   updated: Date,
   created: {
     type: Date,
     default: Date.now
+  },
+  // Keep timestamp for compatibility
+  timestamp: { 
+    type: Date, 
+    default: Date.now 
   }
 });
 

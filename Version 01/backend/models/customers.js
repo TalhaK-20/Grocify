@@ -18,7 +18,7 @@ const customerSchema = new mongoose.Schema({
   address: { type: String, required: true }, // Keep original for backward compatibility
   shippingAddress: addressSchema,
   billingAddress: addressSchema,
-
+  gender: { type: String},
   profileImageUrl: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
