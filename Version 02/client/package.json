@@ -4,8 +4,8 @@
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
-    "dev": "cross-env NODE_ENV=development webpack-dev-server --config webpack/webpack.dev.js"
+    "build": "npm run clean && NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
+    "dev": "NODE_ENV=development webpack-dev-server --config webpack/webpack.dev.js"
   },
   "dependencies": {
     "rimraf": "^3.0.2",
