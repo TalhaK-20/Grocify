@@ -285,6 +285,62 @@ module.exports = router;
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         firstName:
+ *           type: string
+ *         lastName:
+ *           type: string
+ *         email:
+ *           type: string
+ *         role:
+ *           type: string
+ *           enum: [ROLE_Member, ROLE_Admin, ROLE_Merchant]
+ *         profileImageUrl:
+ *           type: string
+ *         shippingAddress:
+ *           type: object
+ *           properties:
+ *             address:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             zipCode:
+ *               type: string
+ *             country:
+ *               type: string
+ *         billingAddress:
+ *           type: object
+ *           properties:
+ *             address:
+ *               type: string
+ *             city:
+ *               type: string
+ *             state:
+ *               type: string
+ *             zipCode:
+ *               type: string
+ *             country:
+ *               type: string
+ *         merchant:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *         created:
+ *           type: string
+ *           format: date-time
+ */
+
+/**
+ * @swagger
  * /api/user/search:
  *   get:
  *     summary: Search users (Admin only)
@@ -301,8 +357,21 @@ module.exports = router;
  *     responses:
  *       200:
  *         description: List of matching users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
  *       400:
  *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin access required)
  */
 
 /**
@@ -318,17 +387,39 @@ module.exports = router;
  *         name: page
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *           maximum: 100
  *           default: 10
+ *         description: Number of items per page
  *     responses:
  *       200:
  *         description: Paginated list of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 count:
+ *                   type: integer
  *       400:
  *         description: Bad request
+ *       401:
+ *         description: Unauthorized
  *   put:
  *     summary: Update current user profile (with optional image upload)
  *     tags: [Users]
@@ -344,26 +435,41 @@ module.exports = router;
  *               profileImage:
  *                 type: string
  *                 format: binary
- *               profile:
- *                 type: string
- *                 description: JSON string with profile fields
+ *                 description: Profile image file (max 5MB)
  *               firstName:
  *                 type: string
  *               lastName:
  *                 type: string
  *               email:
  *                 type: string
+ *                 format: email
  *               shippingAddress:
  *                 type: string
- *                 description: JSON string of shipping address
+ *                 description: JSON string of shipping address object
  *               billingAddress:
  *                 type: string
- *                 description: JSON string of billing address
+ *                 description: JSON string of billing address object
+ *               profile:
+ *                 type: string
+ *                 description: Alternative way to send profile data as JSON string
  *     responses:
  *       200:
  *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Bad request
+ *         description: Bad request or upload failed
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: User not found
  */
@@ -372,15 +478,24 @@ module.exports = router;
  * @swagger
  * /api/user/me:
  *   get:
- *     summary: Get current user details
+ *     summary: Get current user details with merchant and brand information
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Current user details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
  *         description: Bad request
+ *       401:
+ *         description: Unauthorized
  */
 
 /**
@@ -401,26 +516,54 @@ module.exports = router;
  *               profileImage:
  *                 type: string
  *                 format: binary
+ *                 description: Profile image file (max 5MB, jpeg/png/gif/webp)
  *     responses:
  *       200:
  *         description: Profile image updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 imageUrl:
+ *                   type: string
  *       400:
- *         description: Upload error or bad request
+ *         description: No file provided or upload failed
+ *       401:
+ *         description: Unauthorized
  */
 
 /**
  * @swagger
  * /api/user/profile:
  *   get:
- *     summary: Get current user profile with address information
+ *     summary: Get current user profile with full address information
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: User profile fetched successfully
- *       404:
- *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 parsedAddress:
+ *                   type: object
+ *                   description: Parsed address from old format (if applicable)
  *       400:
  *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
  */

@@ -353,6 +353,8 @@ app.post('/api/customers', upload.single('profileImage'), async (req, res) => {
 
 app.get('/api/customers', async (req, res) => {
   try {
+    // Add cache-control headers to prevent 304 responses if you want fresh data
+    res.set('Cache-Control', 'no-cache');
     res.json(await Customer.find());
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -362,6 +364,8 @@ app.get('/api/customers', async (req, res) => {
 
 app.get('/api/customers/:id', async (req, res) => {
   try {
+    // Add cache-control headers
+    res.set('Cache-Control', 'no-cache');
     const c = await Customer.findById(req.params.id);
     if (!c) return res.status(404).json({ error: 'Not found' });
     res.json(c);
@@ -390,7 +394,11 @@ app.put('/api/customers/:id', upload.single('profileImage'), async (req, res) =>
       updateData.profileImageUrl = imageUrl;
     }
 
-    const updated = await Customer.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updated = await Customer.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true } // Added runValidators
+    );
 
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
