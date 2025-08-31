@@ -112,7 +112,7 @@ class Application extends React.PureComponent {
             </div>
           </Container>
         </main>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     );
   }
