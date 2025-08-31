@@ -211,7 +211,6 @@ export const fetchProduct = id => {
   };
 };
 
-// add product api
 export const addProduct = () => {
   return async (dispatch, getState) => {
     try {
@@ -222,13 +221,18 @@ export const addProduct = () => {
         quantity: 'required|numeric',
         price: 'required|numeric',
         taxable: 'required',
-        image: 'required',
+        images: 'required',
         brand: 'required'
       };
 
       const product = getState().product.productFormData;
       const user = getState().account.user;
       const brands = getState().brand.brandsSelect;
+
+      if (!product) {
+        console.error('Product form data is missing');
+        return;
+      }
 
       const brand = unformatSelectOptions([product.brand]);
 
@@ -238,47 +242,70 @@ export const addProduct = () => {
         description: product.description,
         price: product.price,
         quantity: product.quantity,
-        image: product.image,
+        images: product.images,
         isActive: product.isActive,
-        taxable: product.taxable.value,
+        taxable: product.taxable?.value !== undefined ? product.taxable.value : product.taxable,
         brand:
           user.role !== ROLES.Merchant
-            ? brand !== 0
-              ? brand
-              : null
-            : brands[1].value
+            ? brand !== 0 ? brand : null
+            : brands && brands[1] ? brands[1].value : null,
+        salePrice: product.salePrice || null,
+        stockQuantity: product.stockQuantity || 0,
+        stockStatus: product.stockStatus?.value || product.stockStatus || 'In Stock',
+        weight: product.weight || null,
+        dimensions: product.dimensions && (
+          product.dimensions.length || 
+          product.dimensions.width || 
+          product.dimensions.height
+        ) ? product.dimensions : null
       };
 
       const { isValid, errors } = allFieldsValidation(newProduct, rules, {
-        'required.sku': 'Sku is required.',
-        'alpha_dash.sku':
-          'Sku may have alpha-numeric characters, as well as dashes and underscores only.',
+        'required.sku': 'SKU is required.',
+        'alpha_dash.sku': 'SKU may have alpha-numeric characters, as well as dashes and underscores only.',
         'required.name': 'Name is required.',
         'required.description': 'Description is required.',
-        'max.description':
-          'Description may not be greater than 200 characters.',
+        'max.description': 'Description may not be greater than 200 characters.',
         'required.quantity': 'Quantity is required.',
+        'numeric.quantity': 'Quantity must be a number.',
         'required.price': 'Price is required.',
+        'numeric.price': 'Price must be a number.',
         'required.taxable': 'Taxable is required.',
-        'required.image': 'Please upload files with jpg, jpeg, png format.',
+        'required.images': 'Please upload at least one image file.',
         'required.brand': 'Brand is required.'
       });
 
       if (!isValid) {
         return dispatch({ type: SET_PRODUCT_FORM_ERRORS, payload: errors });
       }
+
       const formData = new FormData();
-      if (newProduct.image) {
-        for (const key in newProduct) {
-          if (newProduct.hasOwnProperty(key)) {
-            if (key === 'brand' && newProduct[key] === null) {
-              continue;
-            } else {
-              formData.set(key, newProduct[key]);
-            }
+      
+      // Handle multiple image files
+      if (newProduct.images) {
+        if (newProduct.images instanceof FileList) {
+          for (let i = 0; i < newProduct.images.length; i++) {
+            formData.append('images', newProduct.images[i]);
           }
+        } else if (Array.isArray(newProduct.images)) {
+          newProduct.images.forEach(file => {
+            formData.append('images', file);
+          });
+        } else if (newProduct.images instanceof File) {
+          formData.append('images', newProduct.images);
         }
       }
+
+      // Append other form data
+      Object.keys(newProduct).forEach(key => {
+        if (key !== 'images' && newProduct[key] !== null && newProduct[key] !== undefined && newProduct[key] !== '') {
+          if (key === 'dimensions' && typeof newProduct[key] === 'object') {
+            formData.append(key, JSON.stringify(newProduct[key]));
+          } else {
+            formData.append(key, newProduct[key]);
+          }
+        }
+      });
 
       const response = await axios.post(`${API_URL}/product/add`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -300,6 +327,7 @@ export const addProduct = () => {
         dispatch(goBack());
       }
     } catch (error) {
+      console.error('AddProduct error:', error);
       handleError(error, dispatch);
     }
   };

@@ -22,9 +22,13 @@ const customerSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  address: { 
+  shippingAddress: { 
     type: String, 
     required: true 
+  },
+  billingAddress: {
+    type: String,
+    required: true
   },
   gender: { 
     type: String 

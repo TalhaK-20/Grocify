@@ -326,6 +326,12 @@ router.post(
       });
 
       const savedProduct = await product.save();
+      console.log('Drive results:', driveResults);
+      console.log('Images array before save:', images);
+      console.log('Product before save:', {
+        sku, name, description, images, // log the images specifically
+      });
+      console.log('Saved product:', savedProduct.images); // After save
 
       res.status(200).json({
         success: true,
@@ -342,76 +348,76 @@ router.post(
 );
 
 // Enhanced add product api with S3 support (for backward compatibility)
-router.post(
-  '/add-s3',
-  auth,
-  role.check(ROLES.Admin, ROLES.Merchant),
-  uploadMemory.single('image'),
-  async (req, res) => {
-    try {
-      const sku = req.body.sku;
-      const name = req.body.name;
-      const description = req.body.description;
-      const quantity = req.body.quantity;
-      const price = req.body.price;
-      const taxable = req.body.taxable;
-      const isActive = req.body.isActive;
-      const brand = req.body.brand;
-      const image = req.file;
+// router.post(
+//   '/add-s3',
+//   auth,
+//   role.check(ROLES.Admin, ROLES.Merchant),
+//   uploadMemory.single('image'),
+//   async (req, res) => {
+//     try {
+//       const sku = req.body.sku;
+//       const name = req.body.name;
+//       const description = req.body.description;
+//       const quantity = req.body.quantity;
+//       const price = req.body.price;
+//       const taxable = req.body.taxable;
+//       const isActive = req.body.isActive;
+//       const brand = req.body.brand;
+//       const image = req.file;
 
-      if (!sku) {
-        return res.status(400).json({ error: 'You must enter sku.' });
-      }
+//       if (!sku) {
+//         return res.status(400).json({ error: 'You must enter sku.' });
+//       }
 
-      if (!description || !name) {
-        return res
-          .status(400)
-          .json({ error: 'You must enter description & name.' });
-      }
+//       if (!description || !name) {
+//         return res
+//           .status(400)
+//           .json({ error: 'You must enter description & name.' });
+//       }
 
-      if (!quantity) {
-        return res.status(400).json({ error: 'You must enter a quantity.' });
-      }
+//       if (!quantity) {
+//         return res.status(400).json({ error: 'You must enter a quantity.' });
+//       }
 
-      if (!price) {
-        return res.status(400).json({ error: 'You must enter a price.' });
-      }
+//       if (!price) {
+//         return res.status(400).json({ error: 'You must enter a price.' });
+//       }
 
-      const foundProduct = await Product.findOne({ sku });
+//       const foundProduct = await Product.findOne({ sku });
 
-      if (foundProduct) {
-        return res.status(400).json({ error: 'This sku is already in use.' });
-      }
+//       if (foundProduct) {
+//         return res.status(400).json({ error: 'This sku is already in use.' });
+//       }
 
-      const { imageUrl, imageKey } = await s3Upload(image);
+//       const { imageUrl, imageKey } = await s3Upload(image);
 
-      const product = new Product({
-        sku,
-        name,
-        description,
-        quantity,
-        price,
-        taxable,
-        isActive,
-        brand,
-        imageUrl,
-        imageKey
-      });
+//       const product = new Product({
+//         sku,
+//         name,
+//         description,
+//         quantity,
+//         price,
+//         taxable,
+//         isActive,
+//         brand,
+//         imageUrl,
+//         imageKey
+//       });
 
-      const savedProduct = await product.save();
+//       const savedProduct = await product.save();
 
-      res.status(200).json({
-        success: true,
-        message: `Product has been added successfully!`,
-        product: savedProduct
-      });
-    } catch (error) {
-      return res.status(400).json({
-        error: 'Your request could not be processed. Please try again.'
-      });
-    }
-  }
-);
+//       res.status(200).json({
+//         success: true,
+//         message: `Product has been added successfully!`,
+//         product: savedProduct
+//       });
+//     } catch (error) {
+//       return res.status(400).json({
+//         error: 'Your request could not be processed. Please try again.'
+//       });
+//     }
+//   }
+// );
 
 // fetch products api
 router.get(
