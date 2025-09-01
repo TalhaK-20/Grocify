@@ -96,18 +96,18 @@ class Login extends React.PureComponent {
                 text='Login'
                 disabled={isSubmitting}
               />
-              <Button
+              {/* <Button
                 text='Create an account'
                 variant='link'
                 className='ml-md-3'
                 onClick={registerLink}
-              />
+              /> */}
             </div>
             <Link
               className='redirect-link forgot-password-link'
               to={'/forgot-password'}
             >
-              Forgot Password?
+              {/* Forgot Password? */}
             </Link>
           </div>
         </form>

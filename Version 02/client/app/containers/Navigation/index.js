@@ -138,7 +138,7 @@ class Navigation extends React.PureComponent {
     return (
       <header className='header fixed-mobile-header'>
         <div className='header-info'>
-          <Container>
+          {/* <Container>
             <Row>
               <Col md='4' className='text-center d-none d-md-block'>
                 <i className='fa fa-truck' />
@@ -157,7 +157,7 @@ class Navigation extends React.PureComponent {
                 <span> Need advice? Call us 951-999-9999</span>
               </Col>
             </Row>
-          </Container>
+          </Container> */}
         </div>
         <Container>
           <Row className='align-items-center top-header'>
@@ -218,7 +218,7 @@ class Navigation extends React.PureComponent {
                   icon={<BarsIcon />}
                   onClick={() => this.toggleMenu()}
                 />
-                <CartIcon cartItems={cartItems} onClick={toggleCart} />
+                {/* <CartIcon cartItems={cartItems} onClick={toggleCart} /> */}
               </div>
             </Col>
             <Col
@@ -229,11 +229,11 @@ class Navigation extends React.PureComponent {
               // className='px-0'
             >
               <Navbar color='light' light expand='md' className='mt-1 mt-md-0'>
-                <CartIcon
+                {/* <CartIcon
                   className='d-none d-md-block'
                   cartItems={cartItems}
                   onClick={toggleCart}
-                />
+                /> */}
                 <Nav navbar>
                   {brands && brands.length > 0 && (
                     <Dropdown
@@ -242,10 +242,10 @@ class Navigation extends React.PureComponent {
                       toggle={() => this.toggleBrand()}
                       isOpen={isBrandOpen}
                     >
-                      <DropdownToggle nav>
+                      {/* <DropdownToggle nav>
                         Brands
                         <span className='fa fa-chevron-down dropdown-caret'></span>
-                      </DropdownToggle>
+                      </DropdownToggle> */}
                       <DropdownMenu right className='nav-brand-dropdown'>
                         <div className='mini-brand'>
                           <MiniBrand
@@ -256,7 +256,7 @@ class Navigation extends React.PureComponent {
                       </DropdownMenu>
                     </Dropdown>
                   )}
-                  <NavItem>
+                  {/* <NavItem>
                     <NavLink
                       tag={ActiveLink}
                       to='/shop'
@@ -264,7 +264,7 @@ class Navigation extends React.PureComponent {
                     >
                       Shop
                     </NavLink>
-                  </NavItem>
+                  </NavItem> */}
                   {authenticated ? (
                     <UncontrolledDropdown nav inNavbar>
                       <DropdownToggle nav>
@@ -290,9 +290,9 @@ class Navigation extends React.PureComponent {
                         <DropdownItem onClick={() => history.push('/login')}>
                           Login
                         </DropdownItem>
-                        <DropdownItem onClick={() => history.push('/register')}>
+                        {/* <DropdownItem onClick={() => history.push('/register')}>
                           Sign Up
-                        </DropdownItem>
+                        </DropdownItem> */}
                       </DropdownMenu>
                     </UncontrolledDropdown>
                   )}
@@ -308,14 +308,14 @@ class Navigation extends React.PureComponent {
           aria-hidden={`${isCartOpen ? false : true}`}
         >
           <div className='mini-cart'>
-            <Cart />
+            {/* <Cart /> */}
           </div>
-          <div
+          {/* <div
             className={
               isCartOpen ? 'drawer-backdrop dark-overflow' : 'drawer-backdrop'
             }
             onClick={toggleCart}
-          />
+          /> */}
         </div>
 
         {/* hidden menu drawer */}

@@ -11,7 +11,7 @@ const options = {
     },
     servers: [
       {
-        url: 'https://ba-grocery.onrender.com/api',
+        url: 'http://localhost:3000/api',
         description: 'Development server',
       },
     ],
