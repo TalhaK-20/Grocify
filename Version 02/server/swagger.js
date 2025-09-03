@@ -7,11 +7,11 @@ const options = {
     info: {
       title: 'ba grocery APIs',
       version: '1.0.0',
-      description: 'API documentation for the e-commerce platform - Talha K.',
+      description: 'Talha Khalid - Full-Stack Developer',
     },
     servers: [
       {
-        url: 'http://localhost:3000/api',
+        url: 'https://ba-grocery.onrender.com/api',
         description: 'Development server',
       },
     ],
