@@ -7,7 +7,7 @@ const options = {
     info: {
       title: 'ba grocery APIs',
       version: '1.0.0',
-      description: 'Talha Khalid - Full-Stack Developer',
+      description: 'Talha Khalid - Full Stack Developer',
     },
     servers: [
       {
