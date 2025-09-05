@@ -4,17 +4,101 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const passport = require('passport');
+const nodemailer = require('nodemailer');
 
 const auth = require('../../middleware/auth');
 
 // Bring in Models & Helpers
 const User = require('../../models/user');
 const mailchimp = require('../../services/mailchimp');
-const mailgun = require('../../services/mailgun');
 const keys = require('../../config/keys');
 const { EMAIL_PROVIDER, JWT_COOKIE } = require('../../constants');
 
 const { secret, tokenLife } = keys.jwt;
+
+// Create transporter configuration
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    // Gmail configuration (you can change this based on your email provider)
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER, // Your email address
+      pass: process.env.EMAIL_PASSWORD // Your email password or app password
+    }
+
+    // Alternative SMTP configuration for other providers:
+    // host: process.env.SMTP_HOST,
+    // port: process.env.SMTP_PORT,
+    // secure: false, // true for 465, false for other ports
+    // auth: {
+    //   user: process.env.EMAIL_USER,
+    //   pass: process.env.EMAIL_PASSWORD
+    // }
+  });
+};
+
+// Email templates
+const getEmailTemplate = (type, data = {}) => {
+  switch (type) {
+    case 'signup':
+      return {
+        subject: 'Welcome! Your account has been created',
+        html: `
+          <h2>Welcome ${data.firstName}!</h2>
+          <p>Thank you for creating an account with us.</p>
+          <p>You can now login and start using our services.</p>
+        `,
+        text: `Welcome ${data.firstName}!\n\nThank you for creating an account with us.\n\nYou can now login and start using our services.`
+      };
+    case 'reset':
+      return {
+        subject: 'Password Reset Request',
+        html: `
+          <h2>Password Reset Request</h2>
+          <p>You have requested to reset your password. Please click the link below to reset your password:</p>
+          <a href="https://ba-admin.onrender.com/reset-password/${data.token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+          <p>If you did not request this, please ignore this email.</p>
+          <p>This link will expire in 1 hour.</p>
+        `,
+        text: `Password Reset Request\n\nYou have requested to reset your password. Please visit the following link to reset your password:\n\nhttps://ba-admin.onrender.com/reset-password/${data.token}\n\nIf you did not request this, please ignore this email.\n\nThis link will expire in 1 hour.`
+      };
+    case 'reset-confirmation':
+      return {
+        subject: 'Password Reset Confirmation',
+        html: `
+          <h2>Password Reset Successful</h2>
+          <p>Your password has been successfully reset.</p>
+          <p>If you did not make this change, please contact support immediately.</p>
+        `,
+        text: `Password Reset Successful\n\nYour password has been successfully reset.\n\nIf you did not make this change, please contact support immediately.`
+      };
+    default:
+      throw new Error('Invalid email template type');
+  }
+};
+
+// Email sending function
+const sendEmail = async (to, type, data = {}) => {
+  try {
+    const transporter = createTransporter();
+    const template = getEmailTemplate(type, data);
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', result.messageId);
+    return result;
+  } catch (error) {
+    console.error('Email sending failed:', error);
+    throw error;
+  }
+};
 
 router.post('/login', async (req, res) => {
   try {
@@ -132,12 +216,10 @@ router.post('/register', async (req, res) => {
       id: registeredUser.id
     };
 
-    await mailgun.sendEmail(
-      registeredUser.email,
-      'signup',
-      null,
-      registeredUser
-    );
+    // Send welcome email using nodemailer
+    await sendEmail(registeredUser.email, 'signup', {
+      firstName: registeredUser.firstName
+    });
 
     const token = jwt.sign(payload, secret, { expiresIn: tokenLife });
 
@@ -154,6 +236,7 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(400).json({
       error: 'Your request could not be processed. Please try again.'
     });
@@ -162,9 +245,13 @@ router.post('/register', async (req, res) => {
 
 router.post('/forgot', async (req, res) => {
   try {
+    console.log('Request body:', req.body); // Debug log
+    console.log('Request headers:', req.headers); // Debug log
+
     const { email } = req.body;
 
     if (!email) {
+      console.log('No email provided in request body');
       return res
         .status(400)
         .json({ error: 'You must enter an email address.' });
@@ -175,7 +262,7 @@ router.post('/forgot', async (req, res) => {
     if (!existingUser) {
       return res
         .status(400)
-        .send({ error: 'No user found for this email address.' });
+        .json({ error: 'No user found for this email address.' });
     }
 
     const buffer = crypto.randomBytes(48);
@@ -184,20 +271,19 @@ router.post('/forgot', async (req, res) => {
     existingUser.resetPasswordToken = resetToken;
     existingUser.resetPasswordExpires = Date.now() + 3600000;
 
-    existingUser.save();
+    await existingUser.save();
 
-    await mailgun.sendEmail(
-      existingUser.email,
-      'reset',
-      req.headers.host,
-      resetToken
-    );
+    await sendEmail(existingUser.email, 'reset', {
+      host: 'localhost:8080', // Fixed host format
+      token: resetToken
+    });
 
     res.status(200).json({
       success: true,
       message: 'Please check your email for the link to reset your password.'
     });
   } catch (error) {
+    console.error('Forgot password error:', error);
     res.status(400).json({
       error: 'Your request could not be processed. Please try again.'
     });
@@ -231,9 +317,9 @@ router.post('/reset/:token', async (req, res) => {
     resetUser.resetPasswordToken = undefined;
     resetUser.resetPasswordExpires = undefined;
 
-    resetUser.save();
+    await resetUser.save();
 
-    await mailgun.sendEmail(resetUser.email, 'reset-confirmation');
+    await sendEmail(resetUser.email, 'reset-confirmation');
 
     res.status(200).json({
       success: true,
@@ -241,6 +327,7 @@ router.post('/reset/:token', async (req, res) => {
         'Password changed successfully. Please login with your new password.'
     });
   } catch (error) {
+    console.error('Reset password error:', error);
     res.status(400).json({
       error: 'Your request could not be processed. Please try again.'
     });
@@ -264,7 +351,7 @@ router.post('/reset', auth, async (req, res) => {
     if (!existingUser) {
       return res
         .status(400)
-        .json({ error: 'That email address is already in use.' });
+        .json({ error: 'User not found.' });
     }
 
     const isMatch = await bcrypt.compare(password, existingUser.password);
@@ -278,9 +365,9 @@ router.post('/reset', auth, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(confirmPassword, salt);
     existingUser.password = hash;
-    existingUser.save();
+    await existingUser.save();
 
-    await mailgun.sendEmail(existingUser.email, 'reset-confirmation');
+    await sendEmail(existingUser.email, 'reset-confirmation');
 
     res.status(200).json({
       success: true,
@@ -288,6 +375,7 @@ router.post('/reset', auth, async (req, res) => {
         'Password changed successfully. Please login with your new password.'
     });
   } catch (error) {
+    console.error('Password change error:', error);
     res.status(400).json({
       error: 'Your request could not be processed. Please try again.'
     });

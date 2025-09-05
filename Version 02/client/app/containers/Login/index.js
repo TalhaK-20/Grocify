@@ -107,7 +107,7 @@ class Login extends React.PureComponent {
               className='redirect-link forgot-password-link'
               to={'/forgot-password'}
             >
-              {/* Forgot Password? */}
+              Forgot Password?
             </Link>
           </div>
         </form>
