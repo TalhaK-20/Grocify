@@ -7,6 +7,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const webpackMerge = require('webpack-merge');
+const Dotenv = require('dotenv-webpack'); // Add this import
 
 const common = require('./webpack.common');
 
@@ -18,8 +19,10 @@ const config = {
   mode: 'production',
   output: {
     path: path.join(CURRENT_WORKING_DIR, '/dist'),
-    filename: 'js/[name].[hash].js',
-    publicPath: '/'
+    filename: 'js/[name].[contenthash].js', // Changed from [hash] to [contenthash]
+    chunkFilename: 'js/[name].[contenthash].chunk.js', // Add this for better caching
+    publicPath: '/',
+    clean: true // Clean dist folder before each build
   },
   module: {
     rules: [
@@ -49,7 +52,7 @@ const config = {
             options: {
               outputPath: 'images',
               publicPath: '../images',
-              name: '[name].[hash].[ext]'
+              name: '[name].[contenthash].[ext]' // Changed from [hash] to [contenthash]
             }
           }
         ]
@@ -62,7 +65,7 @@ const config = {
             options: {
               outputPath: 'fonts',
               publicPath: '../fonts',
-              name: '[name].[hash].[ext]'
+              name: '[name].[contenthash].[ext]' // Changed from [hash] to [contenthash]
             }
           }
         ]
@@ -113,10 +116,12 @@ const config = {
     ]
   },
   plugins: [
+    new Dotenv(), // Add dotenv plugin for production
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(NODE_ENV),
-        API_URL: JSON.stringify(API_URL)
+        API_URL: JSON.stringify(API_URL),
+        REACT_APP_ENV: JSON.stringify('production') // Add this explicitly
       }
     }),
     new HtmlWebpackPlugin({
@@ -136,7 +141,7 @@ const config = {
       }
     }),
     new MiniCssExtractPlugin({
-      filename: 'css/[name].[hash].css'
+      filename: 'css/[name].[contenthash].css' // Changed from [hash] to [contenthash]
     }),
     new WebpackPwaManifest({
       name: 'MERN Store',

@@ -14,7 +14,7 @@
     "bootstrap": "^4.3.1",
     "connected-react-router": "^6.4.0",
     "dompurify": "^2.3.8",
-    "dotenv": "^8.0.0",
+    "dotenv": "^8.6.0",
     "font-awesome": "^4.7.0",
     "history": "^4.9.0",
     "mobile-detect": "^1.4.4",

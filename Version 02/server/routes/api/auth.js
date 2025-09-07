@@ -24,7 +24,12 @@ const createTransporter = () => {
     auth: {
       user: process.env.EMAIL_USER, // Your email address
       pass: process.env.EMAIL_PASSWORD // Your email password or app password
-    }
+    },
+
+    host: "smtp.gmail.com",
+    port: 465,   // or 587
+    secure: true, // true for 465, false for 587
+
 
     // Alternative SMTP configuration for other providers:
     // host: process.env.SMTP_HOST,
