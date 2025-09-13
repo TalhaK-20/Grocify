@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
-    "clean": "rimraf dist",
-    "build": "npm install --save-dev webpack-cli && rimraf dist && NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
-    "dev": "cross-env NODE_ENV=development webpack-dev-server --config webpack/webpack.dev.js",
+    "build": "rimraf dist && cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
     "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
@@ -38,6 +36,7 @@
     "redux-thunk": "^2.3.0",
     "rimraf": "^3.0.2",
     "sass": "^1.32.12",
+    "serve": "^14.2.1",
     "simple-line-icons": "^2.4.1",
     "socket.io-client": "^4.2.0",
     "validatorjs": "^3.18.1",
