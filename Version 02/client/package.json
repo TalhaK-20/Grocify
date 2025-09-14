@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
-    "build": "rimraf dist && cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
-    "start": "serve -s dist -l $PORT"
+    "build": "npx rimraf dist && npx cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
+    "start": "npx serve -s dist -l $PORT"
   },
   "dependencies": {
     "@fontsource/poppins": "^4.5.9",
