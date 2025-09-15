@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "MERN E-Commerce-Grocify Client",
   "scripts": {
-    "build": "npx rimraf dist && npx cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
+    "build": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\" && npx cross-env NODE_ENV=production webpack --mode production --config webpack/webpack.prod.js",
     "start": "npx serve -s dist -l $PORT"
   },
   "dependencies": {
